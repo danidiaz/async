@@ -60,7 +60,7 @@ tests = [
 --      , testCase "concurrentlyE_left2" concurrentlyE_left2
 --      , testCase "concurrentlyE_earlyException" concurrentlyE_earlyException
 --      , testCase "concurrentlyE_lateException" concurrentlyE_lateException
-  ]
+--  ]
  ]
 
 value = 42 :: Int
