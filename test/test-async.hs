@@ -419,7 +419,7 @@ concurrentlyE_earlyException = do
     ref <- newIORef "never filled"
     r :: Either TestException (Either () (Bool,Bool)) <- try $ 
         concurrentlyE 
-            ((Right . const False <$> threadDelay 10000) `onException` writeIORef ref "finalized")
+            ((Right . const False <$> runConcurrently empty) `onException` writeIORef ref "finalized")
             (threadDelay 1000 *> throwIO TestException)
     refVal <- readIORef ref
     assertEqual "should be Exception" (Left TestException, "finalized") (r, refVal)
@@ -429,7 +429,7 @@ concurrentlyE_lateException = do
     ref <- newIORef "never filled"
     r :: Either TestException (Either () (Bool,Bool)) <- try $ 
         concurrentlyE 
-            ((Right . const False <$> threadDelay 1000) `onException` writeIORef ref "finalized")
-            (threadDelay 10000 *> throwIO TestException)
+            ((Right . const False <$> threadDelay 100) `onException` writeIORef ref "finalized")
+            (threadDelay 100000 *> throwIO TestException)
     refVal <- readIORef ref
     assertEqual "should be Exception" (Left TestException, "never filled") (r, refVal)
