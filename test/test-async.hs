@@ -53,12 +53,12 @@ tests = [
   , testCase "link2" case_link2
   , testCase "link1_cancel" case_link1cancel
   , testCase "concurrently_deadlock" case_concurrently_deadlock
-  , testCase "concurrentlyE_deadlock" case_concurrentlyE_deadlock
-  , testGroup "concurrentlyE" [
-        testCase "concurrentlyE_right" concurrentlyE_right
-      , testCase "concurrentlyE_left1" concurrentlyE_left1
-      , testCase "concurrentlyE_left2" concurrentlyE_left2
-      , testCase "concurrentlyE_earlyException" concurrentlyE_earlyException
+--  , testCase "concurrentlyE_deadlock" case_concurrentlyE_deadlock
+--  , testGroup "concurrentlyE" [
+--        testCase "concurrentlyE_right" concurrentlyE_right
+--      , testCase "concurrentlyE_left1" concurrentlyE_left1
+--      , testCase "concurrentlyE_left2" concurrentlyE_left2
+--      , testCase "concurrentlyE_earlyException" concurrentlyE_earlyException
 --      , testCase "concurrentlyE_lateException" concurrentlyE_lateException
   ]
  ]
