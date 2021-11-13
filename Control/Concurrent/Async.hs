@@ -714,6 +714,7 @@ race :: IO a -> IO b -> IO (Either a b)
 --
 race_ :: IO a -> IO b -> IO ()
 
+
 -- | Run two @IO@ actions concurrently, and return both results.  If
 -- either action throws an exception at any time, then the other
 -- action is 'cancel'led, and the exception is re-thrown by
@@ -941,6 +942,24 @@ instance Alternative Concurrently where
   Concurrently as <|> Concurrently bs =
     Concurrently $ either id id <$> race as bs
 
+#if MIN_VERSION_base(4,9,0)
+-- | Only defined by @async@ for @base >= 4.9@
+--
+-- @since 2.1.0
+instance Semigroup a => Semigroup (Concurrently a) where
+  (<>) = liftA2 (<>)
+
+-- | @since 2.1.0
+instance (Semigroup a, Monoid a) => Monoid (Concurrently a) where
+  mempty = pure mempty
+  mappend = (<>)
+#else
+-- | @since 2.1.0
+instance Monoid a => Monoid (Concurrently a) where
+  mempty = pure mempty
+  mappend = liftA2 mappend
+#endif
+
 -- | A value of type @ConcurrentlyE e a@ is an @IO@ operation that can be
 -- composed with other @ConcurrentlyE@ values, using the @Applicative@ instance.
 --
@@ -963,24 +982,20 @@ instance Applicative (ConcurrentlyE e) where
   ConcurrentlyE fs <*> ConcurrentlyE eas =
     ConcurrentlyE $ fmap (\(f, a) -> f a) <$> concurrentlyE fs eas
 
-
-#if MIN_VERSION_base(4,9,0)
--- | Only defined by @async@ for @base >= 4.9@
---
--- @since 2.1.0
-instance Semigroup a => Semigroup (Concurrently a) where
-  (<>) = liftA2 (<>)
-
--- | @since 2.1.0
-instance (Semigroup a, Monoid a) => Monoid (Concurrently a) where
-  mempty = pure mempty
-  mappend = (<>)
-#else
--- | @since 2.1.0
-instance Monoid a => Monoid (Concurrently a) where
-  mempty = pure mempty
-  mappend = liftA2 mappend
-#endif
+instance Semigroup e => Alternative (ConcurrentlyE e) where
+  empty = ConcurrentlyE $ forever (threadDelay maxBound)
+  ConcurrentlyE left <|> ConcurrentlyE right = 
+      ConcurrentlyE $ concurrently' left right (collect [])
+    where
+      collect [Left (Left ea), Right (Left eb)] _ = return $ Left (ea <> eb)
+      collect [Right (Left eb), Left (Left ea)] _ = return $ Left (ea <> eb)
+      collect (Left (Right a):_) _ = return $ Right a
+      collect (Right (Right b):_) _ = return $ Right b
+      collect xs m = do
+          e <- m
+          case e of
+              Left ex -> throwIO ex
+              Right r -> collect (r:xs) m
 
 -- ----------------------------------------------------------------------------
 
