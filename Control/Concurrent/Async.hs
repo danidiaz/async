@@ -967,6 +967,8 @@ instance Monoid a => Monoid (Concurrently a) where
 -- execute the @IO@ operations it contains concurrently, before delivering
 -- either the result of type @a@, or an error of type @e@ if one of the actions
 -- returns @Left@.
+--
+-- | @since 2.2.5
 newtype ConcurrentlyE e a = ConcurrentlyE { runConcurrentlyE :: IO (Either e a) }
 
 instance Functor (ConcurrentlyE e) where
@@ -982,6 +984,8 @@ instance Applicative (ConcurrentlyE e) where
   ConcurrentlyE fs <*> ConcurrentlyE eas =
     ConcurrentlyE $ fmap (\(f, a) -> f a) <$> concurrentlyE fs eas
 
+#if MIN_VERSION_base(4,9,0)
+-- | 'Control.Alternative.empty' waits forever. 'Control.Alternative.<|>' returns the first to finish and 'cancel's the other. If both fail with @e@, the combination of the @e@s is returned.
 instance Semigroup e => Alternative (ConcurrentlyE e) where
   empty = ConcurrentlyE $ forever (threadDelay maxBound)
   ConcurrentlyE left <|> ConcurrentlyE right = 
@@ -996,6 +1000,15 @@ instance Semigroup e => Alternative (ConcurrentlyE e) where
           case e of
               Left ex -> throwIO ex
               Right r -> collect (r:xs) m
+              
+-- | Either the combination of the successful results, or the first failure. 
+instance Semigroup a => Semigroup (ConcurrentlyE e a) where
+  (<>) = liftA2 (<>)
+
+instance (Semigroup a, Monoid a) => Monoid (ConcurrentlyE e a) where
+  mempty = pure mempty
+  mappend = (<>)
+#endif
 
 -- ----------------------------------------------------------------------------
 
