@@ -14,7 +14,8 @@ import Data.Typeable
 import Control.Concurrent
 import Control.Monad
 import Control.Applicative
-import Data.List (sort)
+import Data.List (sort, intersperse, permutations)
+import Data.Foldable (asum)
 import Data.Maybe
 
 import Prelude hiding (catch)
@@ -60,6 +61,9 @@ tests = [
       , testCase "concurrentlyE_left2" concurrentlyE_left2
       , testCase "concurrentlyE_earlyException" concurrentlyE_earlyException
       , testCase "concurrentlyE_lateException" concurrentlyE_lateException
+      , testGroup "Alternative" [
+          testCase "concurrentlyE_asum" concurrentlyE_asum
+        ]
   ]
  ]
 
@@ -433,3 +437,16 @@ concurrentlyE_lateException = do
             (threadDelay 100000 *> throwIO TestException)
     refVal <- readIORef ref
     assertEqual "should be Exception" (Left TestException, "never filled") (r, refVal)
+
+concurrentlyE_asum :: Assertion
+concurrentlyE_asum = do
+    let delays :: [Int]
+        delays = [1000, 100000, 200000]
+        -- the 'a' action is always expected to win becasue it ends sooner
+        actions = ConcurrentlyE <$> zipWith (*>) (threadDelay <$> delays) (pure . Right <$> ['a'..])
+        actions' = [empty] ++ intersperse empty actions ++ [empty] 
+    forM_ (permutations actions') $ \currentActions -> do
+        r :: Either () Char <- runConcurrentlyE $ asum currentActions
+        assertEqual "should be Right 'a'" (Right 'a') r
+
+
